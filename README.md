@@ -11,6 +11,7 @@ A robust, self-healing end-to-end test automation framework built with Playwrigh
 - **Test Data Management**: Externalized test data for easy maintenance
 - **Locator Chaining**: Support for Playwright's powerful locator chaining
 - **Comprehensive Reporting**: HTML reports with screenshots and videos on failure
+- **GitHub Pages Integration**: Automatic deployment of test reports to GitHub Pages
 
 ### Self-Healing System
 The framework includes an intelligent healing mechanism that:
@@ -43,7 +44,8 @@ SauceDemoPlaywright/
 ├── helpers/                    # Helper utilities
 │   └── reportHelper.js       # Report enhancement utilities
 ├── docs/                       # Documentation
-│   └── REPORTING_GUIDE.md     # Guide for enhanced reporting
+│   ├── REPORTING_GUIDE.md     # Guide for enhanced reporting
+│   └── GITHUB_PAGES_SETUP.md  # GitHub Pages setup guide
 ├── .github/                    # GitHub configuration
 │   └── workflows/             # GitHub Actions workflows
 │       └── playwright.yml     # CI/CD workflow for automated testing
@@ -360,6 +362,7 @@ The framework supports environment-based configuration:
 The framework includes enhanced reporting capabilities:
 
 - **Interactive HTML Reports**: Rich, interactive web-based reports
+- **GitHub Pages Deployment**: Reports automatically published to GitHub Pages for easy access
 - **Automatic Screenshots**: Captured on failure and at key test points
 - **Video Recording**: Full test execution videos for failed tests
 - **Trace Viewer**: Interactive trace playback for debugging
@@ -398,6 +401,22 @@ test('Enhanced test', async ({ page }, testInfo) => {
 5. **Organize with Tags**: Use tags for easy filtering
 
 For detailed reporting guide, see [docs/REPORTING_GUIDE.md](docs/REPORTING_GUIDE.md)
+
+### Viewing Reports on GitHub Pages
+
+After enabling GitHub Pages (see [docs/GITHUB_PAGES_SETUP.md](docs/GITHUB_PAGES_SETUP.md)), your test reports will be automatically available at:
+
+```
+https://[your-username].github.io/[repository-name]/
+```
+
+**Benefits**:
+- ✅ No need to download artifacts
+- ✅ Share reports with a simple URL
+- ✅ Reports update automatically after each test run
+- ✅ Accessible from anywhere with internet connection
+
+**Note**: Reports are only deployed from `main`, `master`, or `develop` branches.
 
 ## 🔧 Creating New Page Objects
 
@@ -530,6 +549,7 @@ The framework includes a comprehensive GitHub Actions workflow (`.github/workflo
 - **Comprehensive Reporting**:
   - HTML test reports (downloadable artifact)
   - Test results including screenshots and videos (downloadable artifact)
+  - **GitHub Pages Deployment**: Reports automatically published to GitHub Pages
   - Both artifacts retained for 30 days
 - **CI-Optimized Configuration**:
   - Uses `npm test` script for consistency
@@ -544,8 +564,31 @@ The framework includes a comprehensive GitHub Actions workflow (`.github/workflo
 4. **Install Browsers**: Installs Playwright browsers with system dependencies
 5. **Run Tests**: Executes all Playwright tests using `npm test`
 6. **Upload Artifacts**: Uploads test reports and results (even on failure)
+7. **Deploy to GitHub Pages**: Automatically publishes HTML reports to GitHub Pages
 
 #### Accessing Results
+
+##### Option 1: GitHub Pages (Recommended)
+
+Test reports are automatically published to GitHub Pages and accessible via a public URL:
+
+**URL Format**: `https://[your-username].github.io/[repository-name]/`
+
+**Example**: If your repository is `PlaywrightPOMFramework` and username is `yourusername`, the report will be at:
+```
+https://yourusername.github.io/PlaywrightPOMFramework/
+```
+
+**Setup Required**:
+1. Go to repository **Settings** → **Pages**
+2. Under **Source**, select **GitHub Actions**
+3. Save the settings
+
+The report will be automatically updated on every push to `main`, `master`, or `develop` branches.
+
+For detailed setup instructions, see [docs/GITHUB_PAGES_SETUP.md](docs/GITHUB_PAGES_SETUP.md)
+
+##### Option 2: Download Artifacts
 
 After a workflow run completes:
 1. Go to the **Actions** tab in your GitHub repository
@@ -553,6 +596,17 @@ After a workflow run completes:
 3. Download artifacts from the workflow summary:
    - `playwright-report`: HTML test report
    - `test-results`: Test execution results, screenshots, and videos
+
+### GitHub Pages Integration
+
+The framework automatically deploys test reports to GitHub Pages, making them accessible via a public URL. This provides:
+
+- **Easy Access**: Share reports with team members via a simple URL
+- **Automatic Updates**: Reports update automatically on every test run
+- **No Downloads Required**: View reports directly in the browser
+- **Public Sharing**: Share test results with stakeholders easily
+
+**Note**: For private repositories, you need GitHub Pro, Team, or Enterprise account to use GitHub Pages.
 
 ### Customizing CI/CD
 
@@ -562,6 +616,7 @@ Modify `.github/workflows/playwright.yml` for your CI/CD needs:
 - **Configure artifact retention**: Change `retention-days` in artifact upload steps
 - **Add notification steps**: Add Slack, email, or other notification integrations
 - **Add matrix strategy**: Test against multiple Node.js versions or browsers
+- **Disable GitHub Pages**: Remove the `deploy` job if you don't want Pages deployment
 
 ## 📈 Best Practices
 
