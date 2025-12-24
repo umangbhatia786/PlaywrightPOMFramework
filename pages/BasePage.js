@@ -1,4 +1,4 @@
-const {HealingLocator} = require('../healing/HealingLocator');
+const {HealingLocator} = require('../healing/healingLocator');
 const store = require('../healing/healerStore.json');
 
 class BasePage {
