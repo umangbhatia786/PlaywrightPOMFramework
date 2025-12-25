@@ -1,14 +1,12 @@
-const { test } = require('@playwright/test');
-const {POManager} = require('../pages/POManager');
+const { test } = require('../playwright/fixtures');
 const loginData = require('../test-data/loginData');
 const { addMetadata, attachScreenshot } = require('../helpers/reportHelper');
+const { waitForNetworkIdle, waitForURL } = require('../helpers/waitHelper');
 
 test.describe('@login Login Tests', () => {
-  let loginPage;
-
-  test.beforeEach(async ({ page }, testInfo) => {
-    const poManager = new POManager(page, testInfo);
-    loginPage = poManager.getLoginPage();
+  test.beforeEach(async ({ page, poManager }, testInfo) => {
+    // Set testInfo in fixtures when available
+    poManager.setTestInfo(testInfo);
     
     // Add test metadata for better reporting
     addMetadata(testInfo, {
@@ -18,9 +16,15 @@ test.describe('@login Login Tests', () => {
     });
     
     await page.goto('/');
+    await waitForNetworkIdle(page);
   });
 
-  test('@smoke @regression @positiveLogin Valid user should login successfully', async ({ page }, testInfo) => {
+  test('@smoke @regression @positiveLogin Valid user should login successfully', async ({ page, poManager }, testInfo) => {
+    // Update testInfo in fixtures
+    poManager.setTestInfo(testInfo);
+    
+    const loginPage = poManager.getLoginPage();
+    
     // Add test-specific metadata
     addMetadata(testInfo, {
       'test-scenario': 'positive-login',
@@ -33,11 +37,13 @@ test.describe('@login Login Tests', () => {
         loginData.validUser.username,
         loginData.validUser.password
       );
+      await waitForNetworkIdle(page);
       // Capture screenshot after login attempt
       await attachScreenshot(testInfo, page, 'after-login-attempt');
     });
 
     await test.step('Verify user is redirected to inventory page', async () => {
+      await waitForURL(page, /\/inventory\.html$/);
       await loginPage.validateLoginSuccess();
       // Capture screenshot showing successful login
       await attachScreenshot(testInfo, page, 'login-success');
@@ -45,7 +51,12 @@ test.describe('@login Login Tests', () => {
   });
 
   for (const user of loginData.invalidUsers) {
-    test(`@smoke @regression @invalidLogin Invalid login → ${user.username || 'empty username'} / ${user.password || 'empty password'}`, async ({ page }, testInfo) => {
+    test(`@smoke @regression @invalidLogin Invalid login → ${user.username || 'empty username'} / ${user.password || 'empty password'}`, async ({ page, poManager }, testInfo) => {
+      // Update testInfo in fixtures
+      poManager.setTestInfo(testInfo);
+      
+      const loginPage = poManager.getLoginPage();
+      
       // Add test-specific metadata for negative test cases
       addMetadata(testInfo, {
         'test-scenario': 'negative-login',
@@ -56,6 +67,7 @@ test.describe('@login Login Tests', () => {
 
       await test.step('Attempt login with invalid credentials', async () => {
         await loginPage.loginUser(user.username, user.password);
+        await waitForNetworkIdle(page);
         // Capture screenshot showing error state
         await attachScreenshot(testInfo, page, 'login-error-state');
       });

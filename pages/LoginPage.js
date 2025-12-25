@@ -1,5 +1,6 @@
 const {BasePage} = require('./BasePage');
 const {expect} = require("@playwright/test");
+const { waitForNetworkIdle } = require('../helpers/waitHelper');
 
 class LoginPage extends BasePage {
 
@@ -36,7 +37,7 @@ class LoginPage extends BasePage {
         await this.userName.fill(userName);
         await this.password.fill(pwd);
         await this.loginButton.click();
-        await this.page.waitForLoadState('networkidle');
+        await waitForNetworkIdle(this.page);
     }
 
     async validateLoginSuccess() {

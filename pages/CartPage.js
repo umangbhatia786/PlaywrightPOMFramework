@@ -1,5 +1,6 @@
 const { expect } = require('@playwright/test');
 const {BasePage} = require('./BasePage');
+const { waitForNetworkIdle } = require('../helpers/waitHelper');
 
 class CartPage extends BasePage {
   constructor(page, testInfo) {
@@ -33,7 +34,7 @@ class CartPage extends BasePage {
 
   async clickCheckout() {
     await this.checkoutButton.click();
-    await this.page.waitForLoadState('networkidle');
+    await waitForNetworkIdle(this.page);
   }
 }
 

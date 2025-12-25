@@ -1,5 +1,6 @@
 const {BasePage} = require('./BasePage');
 const {expect} = require("@playwright/test");
+const { waitForNetworkIdle } = require('../helpers/waitHelper');
 
 class ProductsPage extends BasePage {
 
@@ -34,7 +35,7 @@ class ProductsPage extends BasePage {
 
     async goToCart() {
         await this.cartButton.click();
-        await this.page.waitForLoadState('networkidle');
+        await waitForNetworkIdle(this.page);
     }
 
 }

@@ -2,7 +2,7 @@ const {HealingLocator} = require('../healing/healingLocator');
 const store = require('../healing/healerStore.json');
 
 class BasePage {
-  constructor(page, testInfo) {
+  constructor(page, testInfo = null) {
     this.page = page;
     this.testInfo = testInfo;
   }

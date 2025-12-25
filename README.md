@@ -12,6 +12,10 @@ A robust, self-healing end-to-end test automation framework built with Playwrigh
 - **Locator Chaining**: Support for Playwright's powerful locator chaining
 - **Comprehensive Reporting**: HTML reports with screenshots and videos on failure
 - **GitHub Pages Integration**: Automatic deployment of test reports to GitHub Pages
+- **Environment Configuration**: Support for multiple environments via `.env` files
+- **Test Fixtures**: Reusable test context with pre-authenticated pages
+- **Wait Utilities**: Custom wait helpers for better control
+- **Cross-Browser Testing**: Ready for multi-browser test execution
 
 ### Self-Healing System
 The framework includes an intelligent healing mechanism that:
@@ -39,16 +43,19 @@ SauceDemoPlaywright/
 │   └── productsData.js        # Product test data
 ├── tests/                      # Test specifications
 │   ├── login.spec.js          # Login test cases
-│   ├── cart.spec.js           # Cart test cases
-│   └── example.spec.js        # Example test file
+│   └── cart.spec.js           # Cart test cases
 ├── helpers/                    # Helper utilities
-│   └── reportHelper.js       # Report enhancement utilities
+│   ├── reportHelper.js       # Report enhancement utilities
+│   └── waitHelper.js          # Wait utility helpers
+├── playwright/                 # Playwright configuration and fixtures
+│   └── fixtures.js           # Custom test fixtures
 ├── docs/                       # Documentation
 │   ├── REPORTING_GUIDE.md     # Guide for enhanced reporting
 │   └── GITHUB_PAGES_SETUP.md  # GitHub Pages setup guide
 ├── .github/                    # GitHub configuration
 │   └── workflows/             # GitHub Actions workflows
 │       └── playwright.yml     # CI/CD workflow for automated testing
+├── .env.example                # Environment variables template
 ├── playwright.config.js        # Playwright configuration
 ├── package.json               # Project dependencies and npm scripts
 └── README.md                  # This file
@@ -78,7 +85,22 @@ SauceDemoPlaywright/
    npx playwright install --with-deps
    ```
 
-4. **Verify installation**:
+4. **Configure environment variables** (optional):
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` file with your configuration:
+   ```env
+   BASE_URL=https://www.saucedemo.com/
+   BROWSER=chromium
+   HEADLESS=true
+   TIMEOUT=30000
+   RETRIES=0
+   DEFAULT_USERNAME=standard_user
+   DEFAULT_PASSWORD=secret_sauce
+   ```
+
+5. **Verify installation**:
    ```bash
    npx playwright test --version
    ```
@@ -176,7 +198,65 @@ The healing system uses intelligent strategies:
 
 ## 📝 Writing Tests
 
-### Basic Test Structure
+### Using Custom Fixtures (Recommended)
+
+The framework provides custom fixtures for better test organization:
+
+```javascript
+const { test } = require('../playwright/fixtures');
+const loginData = require('../test-data/loginData');
+const { addMetadata, attachScreenshot } = require('../helpers/reportHelper');
+const { waitForNetworkIdle } = require('../helpers/waitHelper');
+
+test.describe('Feature Tests', () => {
+  test.beforeEach(async ({ page, poManager }, testInfo) => {
+    // Set testInfo in fixtures when available
+    poManager.setTestInfo(testInfo);
+    
+    // Add metadata
+    addMetadata(testInfo, {
+      'test-type': 'feature',
+      'browser': 'chromium'
+    });
+    
+    await page.goto('/');
+    await waitForNetworkIdle(page);
+  });
+
+  test('Test description', async ({ page, poManager }, testInfo) => {
+    // Update testInfo in fixtures
+    poManager.setTestInfo(testInfo);
+    
+    const loginPage = poManager.getLoginPage();
+    
+    await test.step('Step description', async () => {
+      // Test actions
+    });
+  });
+});
+```
+
+### Using Authenticated Page Fixture
+
+For tests that require authentication, use the `authenticatedPage` fixture:
+
+```javascript
+const { test } = require('../playwright/fixtures');
+
+test.describe('Authenticated Tests', () => {
+  test('Test with pre-authenticated page', async ({ authenticatedPage, poManager }) => {
+    // Page is already logged in!
+    
+    // Navigate directly to authenticated pages
+    await authenticatedPage.goto('/inventory.html');
+    
+    const productsPage = poManager.getProductsPage();
+    await productsPage.addProductToCart('Sauce Labs Backpack');
+  });
+});
+```
+
+### Basic Test Structure (Without Fixtures)
 
 ```javascript
 const { test, expect } = require('@playwright/test');
@@ -184,17 +264,13 @@ const {POManager} = require('../pages/POManager');
 const loginData = require('../test-data/loginData');
 
 test.describe('Feature Tests', () => {
-  let loginPage;
-  let productsPage;
-
   test.beforeEach(async ({ page }, testInfo) => {
     const poManager = new POManager(page, testInfo);
-    loginPage = poManager.getLoginPage();
-    productsPage = poManager.getProductsPage();
+    const loginPage = poManager.getLoginPage();
     await page.goto('/');
   });
 
-  test('Test description', async () => {
+  test('Test description', async ({ page }, testInfo) => {
     await test.step('Step description', async () => {
       // Test actions
     });
@@ -335,9 +411,10 @@ npx playwright show-report
 
 Key settings in `playwright.config.js`:
 
-- **Base URL**: `https://www.saucedemo.com/`
-- **Browser**: Chromium (configurable)
-- **Retries**: 2 retries on CI, 0 locally
+- **Base URL**: Configurable via `BASE_URL` environment variable (default: `https://www.saucedemo.com/`)
+- **Browser**: Configurable via `BROWSER` environment variable (default: `chromium`)
+- **Headless Mode**: Configurable via `HEADLESS` environment variable (default: `true`)
+- **Retries**: 2 retries on CI, configurable via `RETRIES` environment variable locally
 - **Workers**: Parallel execution (1 on CI)
 - **Reporter**: 
   - HTML reporter (always) - Enhanced with better options
@@ -346,14 +423,47 @@ Key settings in `playwright.config.js`:
 - **Traces**: Retained on failure for better debugging
 - **Screenshots**: Captured on failure
 - **Videos**: Retained on failure
-- **Timeouts**: 30 seconds for actions and navigation
+- **Timeouts**: Configurable via `TIMEOUT` environment variable (default: 30000ms)
+- **Projects**: Ready for cross-browser testing (Chrome, Firefox, Safari)
 
 ### Environment Variables
 
-The framework supports environment-based configuration:
-- `CI`: Automatically detected for CI/CD environments
-- Retries, workers, and reporters adjust based on environment
-- JUnit reports are automatically generated in CI for better integration
+The framework supports environment-based configuration via `.env` file:
+
+#### Available Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BASE_URL` | Application base URL | `https://www.saucedemo.com/` |
+| `BROWSER` | Browser to use (`chromium`, `firefox`, `webkit`) | `chromium` |
+| `HEADLESS` | Run in headless mode (`true`/`false`) | `true` |
+| `TIMEOUT` | Action and navigation timeout (ms) | `30000` |
+| `RETRIES` | Number of retries for failed tests | `0` (local), `2` (CI) |
+| `DEFAULT_USERNAME` | Default username for authentication | `standard_user` |
+| `DEFAULT_PASSWORD` | Default password for authentication | `secret_sauce` |
+| `CI` | Automatically detected for CI/CD environments | `false` |
+
+#### Creating Environment File
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your values:
+   ```env
+   BASE_URL=https://www.saucedemo.com/
+   BROWSER=chromium
+   HEADLESS=true
+   TIMEOUT=30000
+   RETRIES=0
+   DEFAULT_USERNAME=standard_user
+   DEFAULT_PASSWORD=secret_sauce
+   ```
+
+3. The framework automatically loads `.env` file on startup
+
+**Note**: `.env` file is gitignored. Use `.env.example` as a template for team members.
 
 ## 📈 Enhanced Reporting
 
@@ -370,9 +480,13 @@ The framework includes enhanced reporting capabilities:
 - **Step-by-Step View**: Detailed breakdown of test execution
 - **Filtering & Search**: Easy navigation through test results
 
-### Report Helper Utilities
+### Helper Utilities
 
-Located in `helpers/reportHelper.js`, these utilities enhance your test reports:
+The framework provides several helper utilities located in `helpers/` directory:
+
+#### Report Helper (`helpers/reportHelper.js`)
+
+Enhance your test reports with metadata, screenshots, and annotations:
 
 ```javascript
 const { addMetadata, attachScreenshot, addAnnotation } = require('../helpers/reportHelper');
@@ -391,6 +505,37 @@ test('Enhanced test', async ({ page }, testInfo) => {
   addAnnotation(testInfo, 'User logged in successfully', 'info');
 });
 ```
+
+#### Wait Helper (`helpers/waitHelper.js`)
+
+Custom wait utilities for better control over waits:
+
+```javascript
+const { waitForVisible, waitForNetworkIdle, waitForURL, waitWithRetry } = require('../helpers/waitHelper');
+
+// Wait for element to be visible
+await waitForVisible(page.locator('#button'), 5000);
+
+// Wait for network to be idle
+await waitForNetworkIdle(page);
+
+// Wait for specific URL
+await waitForURL(page, /\/inventory\.html$/);
+
+// Wait with retry mechanism
+await waitWithRetry(async () => {
+  await page.locator('#element').click();
+}, 3, 1000);
+```
+
+**Available Wait Functions:**
+- `waitForVisible(locator, timeout)` - Wait for element to be visible
+- `waitForHidden(locator, timeout)` - Wait for element to be hidden
+- `waitForAttached(locator, timeout)` - Wait for element to be attached to DOM
+- `waitForNetworkIdle(page, timeout)` - Wait for network to be idle
+- `waitForURL(page, url, timeout)` - Wait for specific URL
+- `waitForText(locator, text, timeout)` - Wait for element text to match
+- `waitWithRetry(fn, maxRetries, delay)` - Retry mechanism
 
 ### Best Practices for Reports
 
@@ -417,6 +562,55 @@ https://[your-username].github.io/[repository-name]/
 - ✅ Accessible from anywhere with internet connection
 
 **Note**: Reports are only deployed from `main`, `master`, or `develop` branches.
+
+## 🎭 Test Fixtures
+
+The framework provides custom fixtures for better test organization and code reuse.
+
+### Available Fixtures
+
+#### 1. `authenticatedPage`
+Pre-authenticated page fixture - automatically logs in before test:
+
+```javascript
+const { test } = require('../playwright/fixtures');
+
+test('Test with authenticated page', async ({ authenticatedPage, poManager }) => {
+  // Page is already logged in!
+  await authenticatedPage.goto('/inventory.html');
+  const productsPage = poManager.getProductsPage();
+  // Continue with test...
+});
+```
+
+#### 2. `poManager`
+POM Manager fixture - provides centralized page object access:
+
+```javascript
+test('Test with POM Manager', async ({ page, poManager }, testInfo) => {
+  poManager.setTestInfo(testInfo);
+  const loginPage = poManager.getLoginPage();
+  const productsPage = poManager.getProductsPage();
+  // Use page objects...
+});
+```
+
+### Using Fixtures
+
+1. **Import from fixtures**:
+   ```javascript
+   const { test } = require('../playwright/fixtures');
+   ```
+
+2. **Use in test functions**:
+   ```javascript
+   test('My test', async ({ authenticatedPage, poManager }, testInfo) => {
+     // Set testInfo when available
+     poManager.setTestInfo(testInfo);
+     
+     // Use fixtures...
+   });
+   ```
 
 ## 🔧 Creating New Page Objects
 
@@ -629,11 +823,13 @@ Modify `.github/workflows/playwright.yml` for your CI/CD needs:
 - Group related tests in describe blocks
 - Use descriptive test names
 - Tag tests appropriately (@smoke, @regression, etc.)
+- Use fixtures for common setup (authentication, etc.)
 
 ### 3. Page Objects
 - Keep page objects focused on single pages
 - Use meaningful method names
 - Return values when appropriate for assertions
+- Use POManager for centralized access
 
 ### 4. Test Data
 - Externalize all test data
@@ -644,6 +840,21 @@ Modify `.github/workflows/playwright.yml` for your CI/CD needs:
 - Use Playwright's expect API
 - Make assertions specific and meaningful
 - Validate both positive and negative scenarios
+
+### 6. Environment Configuration
+- Use `.env` file for environment-specific settings
+- Never commit `.env` file (use `.env.example` as template)
+- Use environment variables for sensitive data
+
+### 7. Logging and Reporting
+- Add metadata to tests for better reporting
+- Capture screenshots at key decision points
+- Use wait helpers for reliable waits
+
+### 8. Fixtures Usage
+- Use `authenticatedPage` for tests requiring login
+- Set `testInfo` in fixtures when available
+- Leverage fixtures to reduce code duplication
 
 ## 🐛 Troubleshooting
 

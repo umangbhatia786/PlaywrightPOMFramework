@@ -3,11 +3,20 @@ const {ProductsPage} = require('./ProductsPage');
 const {CartPage} = require('./CartPage');
 
 class POManager {
-  constructor(page, testInfo) {
+  constructor(page, testInfo = null) {
     this.page = page;
     this.testInfo = testInfo;
 
     // Lazy initialization
+    this._loginPage = null;
+    this._productsPage = null;
+    this._cartPage = null;
+  }
+
+  // Method to update testInfo if needed
+  setTestInfo(testInfo) {
+    this.testInfo = testInfo;
+    // Reset cached pages so they get recreated with new testInfo
     this._loginPage = null;
     this._productsPage = null;
     this._cartPage = null;
