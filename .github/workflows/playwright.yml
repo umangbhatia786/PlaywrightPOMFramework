@@ -35,7 +35,39 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     
+    - name: Start MCP Server
+      run: |
+        node mcp-server/server.js > server.log 2>&1 &
+        echo $! > server.pid
+        echo "Waiting for server to be ready..."
+        sleep 5
+        # Check if server is running by testing the endpoint
+        for i in {1..30}; do
+          if curl -s -X POST http://localhost:3333/tool/get_dom -H "Content-Type: application/json" -d '{}' > /dev/null 2>&1; then
+            echo "✅ MCP Server is ready"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "⚠️ MCP Server may not be ready, but continuing..."
+            cat server.log || true
+          fi
+          sleep 1
+        done
+      continue-on-error: true
+    
     - name: Run Playwright tests
+      env:
+        # AI Provider Configuration
+        AI_PROVIDER: ${{ secrets.AI_PROVIDER || 'openai' }}
+        AI_HEALING: ${{ secrets.AI_HEALING || 'false' }}
+        # Provider-specific API keys (only set the one you're using)
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        # Application Configuration
+        BASE_URL: ${{ secrets.BASE_URL || 'https://www.saucedemo.com/' }}
+        BROWSER: ${{ secrets.BROWSER || 'chromium' }}
+        HEADLESS: ${{ secrets.HEADLESS || 'true' }}
       run: npm test
       continue-on-error: true
     
@@ -58,6 +90,15 @@ jobs:
       if: always()
       with:
         path: playwright-report/
+    
+    - name: Stop MCP Server
+      if: always()
+      run: |
+        if [ -f server.pid ]; then
+          kill $(cat server.pid) 2>/dev/null || true
+          rm server.pid
+        fi
+        pkill -f "node mcp-server/server.js" || true
 
   deploy:
     environment:

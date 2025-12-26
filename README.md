@@ -23,6 +23,8 @@ The framework includes an intelligent healing mechanism that:
 - Persists successful selectors for future use
 - Provides special handling for common UI patterns (products, items, etc.)
 - Reduces test maintenance overhead
+- **AI-Powered Healing**: Supports multiple AI providers (OpenAI, Google Gemini, xAI/Grok) for intelligent locator generation
+- **Fallback Strategy**: Automatically falls back to CSS-based healing if AI healing fails or is unavailable
 
 ## 📁 Project Structure
 
@@ -441,6 +443,14 @@ The framework supports environment-based configuration via `.env` file:
 | `RETRIES` | Number of retries for failed tests | `0` (local), `2` (CI) |
 | `DEFAULT_USERNAME` | Default username for authentication | `standard_user` |
 | `DEFAULT_PASSWORD` | Default password for authentication | `secret_sauce` |
+| `AI_PROVIDER` | AI provider to use (`openai`, `google`, `xai`, `grok`) | `openai` |
+| `AI_HEALING` | Enable AI-powered locator healing (`true`/`false`) | `false` |
+| `OPENAI_API_KEY` | OpenAI API key (required if `AI_PROVIDER=openai`) | (required if using OpenAI) |
+| `GOOGLE_API_KEY` | Google Gemini API key (required if `AI_PROVIDER=google`) | (required if using Google) |
+| `XAI_API_KEY` | xAI/Grok API key (required if `AI_PROVIDER=xai` or `grok`) | (required if using xAI) |
+| `OPENAI_MODEL` | OpenAI model to use (e.g., `gpt-4o-mini`) | `gpt-4o-mini` |
+| `GOOGLE_MODEL` | Google model to use (e.g., `gemini-pro`) | `gemini-pro` |
+| `XAI_MODEL` | xAI/Grok model to use (e.g., `grok-beta`) | `grok-beta` |
 | `CI` | Automatically detected for CI/CD environments | `false` |
 
 #### Creating Environment File
@@ -459,11 +469,36 @@ The framework supports environment-based configuration via `.env` file:
    RETRIES=0
    DEFAULT_USERNAME=standard_user
    DEFAULT_PASSWORD=secret_sauce
+   
+   # Optional: AI-powered locator healing
+   # Choose one provider: openai, google, or xai/grok
+   AI_PROVIDER=xai
+   AI_HEALING=true
+   
+   # Provider-specific API keys (only set the one you're using)
+   # OPENAI_API_KEY=sk-your-api-key-here
+   # GOOGLE_API_KEY=your-api-key-here
+   XAI_API_KEY=xai-your-api-key-here
+   
+   # Optional: Override default models
+   # XAI_MODEL=grok-beta
    ```
 
 3. The framework automatically loads `.env` file on startup
 
 **Note**: `.env` file is gitignored. Use `.env.example` as a template for team members.
+
+#### AI Provider Options
+
+The framework supports multiple AI providers for locator healing. Choose based on your needs:
+
+| Provider | Pros | Cons | Best For |
+|----------|------|------|----------|
+| **xAI/Grok** | 🚀 Fast, OpenAI-compatible API, good performance | Paid service | Teams wanting OpenAI-compatible alternative |
+| **Google Gemini** | 🆓 Free tier available, good performance | Rate limits on free tier | Budget-conscious projects |
+| **OpenAI** | 🏆 High quality, widely used | Quota limits, paid | Teams already using OpenAI |
+
+**Recommendation**: Use **xAI/Grok** if you want an OpenAI-compatible API with good performance. It works great for locator generation and uses the same API format as OpenAI.
 
 ## 📈 Enhanced Reporting
 
@@ -750,13 +785,39 @@ The framework includes a comprehensive GitHub Actions workflow (`.github/workflo
   - Automatic retry on failure (2 retries)
   - Single worker for stability in CI environment
 
+#### Setting Up GitHub Secrets
+
+To use AI-powered locator healing in GitHub Actions, you need to configure GitHub Secrets:
+
+1. Go to your repository on GitHub
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** and add the following secrets:
+
+   | Secret Name | Description | Required | Get API Key |
+   |------------|-------------|----------|------------|
+   | `AI_PROVIDER` | AI provider: `openai`, `google`, or `xai`/`grok` | Optional (defaults to `openai`) | - |
+   | `AI_HEALING` | Set to `true` to enable AI healing | Optional (defaults to `false`) | - |
+   | `OPENAI_API_KEY` | OpenAI API key (starts with `sk-`) | Only if `AI_PROVIDER=openai` | [OpenAI](https://platform.openai.com/api-keys) |
+   | `GOOGLE_API_KEY` | Google Gemini API key | Only if `AI_PROVIDER=google` | [Google AI Studio](https://makersuite.google.com/app/apikey) |
+   | `XAI_API_KEY` | xAI/Grok API key (starts with `xai-`) | Only if `AI_PROVIDER=xai` or `grok` | [xAI Console](https://console.x.ai/) |
+   | `BASE_URL` | Application base URL | Optional (has default) | - |
+   | `BROWSER` | Browser to use (`chromium`, `firefox`, `webkit`) | Optional (defaults to `chromium`) | - |
+   | `HEADLESS` | Run in headless mode (`true`/`false`) | Optional (defaults to `true`) | - |
+
+**Recommended Providers:**
+- **xAI/Grok**: Fast, OpenAI-compatible API, good performance
+- **Google Gemini**: Free tier available, good performance
+- **OpenAI**: High quality but has quota limits
+
+**Note**: If `AI_HEALING` is set to `true` but the required API key is not provided, AI healing will be skipped and the framework will fall back to CSS-based healing.
+
 #### Workflow Steps
 
 1. **Checkout**: Checks out the repository code
 2. **Setup Node.js**: Sets up Node.js with npm caching enabled
 3. **Install Dependencies**: Runs `npm ci` for clean, reproducible builds
 4. **Install Browsers**: Installs Playwright browsers with system dependencies
-5. **Run Tests**: Executes all Playwright tests using `npm test`
+5. **Run Tests**: Executes all Playwright tests using `npm test` with environment variables from GitHub Secrets
 6. **Upload Artifacts**: Uploads test reports and results (even on failure)
 7. **Deploy to GitHub Pages**: Automatically publishes HTML reports to GitHub Pages
 
